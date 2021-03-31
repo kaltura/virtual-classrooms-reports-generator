@@ -1,0 +1,16 @@
+{
+  "newrow": {
+    "webserver_api": "https://smart.newrow.com/",
+    "lti_key": "@COMPANY_LTI_KEY",
+    "lti_secret": "@COMPANY_LTI_SECRET",
+    "company_id": 0,
+    "rooms_ids": []
+  },
+  "kaltura": {
+    "partner_id": 0,
+    "admin_secret": "@PARTNER_ADMIN_SECRET"
+  },
+  "report_start_time": 0,
+  "report_end_time": 0,
+  "output_path": "@OUTPUT_PATH"
+}

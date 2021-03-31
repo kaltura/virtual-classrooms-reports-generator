@@ -1,0 +1,19 @@
+{
+  "name": "aws_sko",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "archiver": "^5.2.0",
+    "axios": "^0.21.1",
+    "config": "^3.3.3",
+    "csv-writer": "^1.6.0",
+    "oauth-1.0a": "^2.2.6"
+  }
+}
