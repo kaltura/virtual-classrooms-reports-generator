@@ -1,7 +1,8 @@
-const axios = require("axios");
-const qs = require('querystring');
-const fileSystem = require('fs');
 const archiver = require('archiver');
+const axios = require("axios");
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const fileSystem = require('fs');
+const qs = require('querystring');
 
 async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
     let res = null;
@@ -40,8 +41,22 @@ function generateZipFile(allFilesFolderPath, outputFilePath){
 }
 
 function convertMillisecondsToDateTime(time, timeZone = 'PST'){
-    const date = new Date(time * 1000);
+    const date = new Date(time);
     return date.toLocaleString('en-US', { timeZone });
 }
 
-module.exports = { sendHttpRequest, generateZipFile, convertMillisecondsToDateTime }
+function convertDateStrToRightTimeZone(dateStr, newTimeZone = 'PST', originalTimeZone = 'GMT'){
+    const fixedDateStr = `${dateStr} ${originalTimeZone}`;
+    const time = Date.parse(fixedDateStr);
+    return convertMillisecondsToDateTime(time, newTimeZone);
+}
+
+async function generateCsvFile(outputFilePath, fieldNames, records){
+    const csvWriter = createCsvWriter({
+        path: outputFilePath,
+        header: fieldNames,
+    })
+    await csvWriter.writeRecords(records);
+}
+
+module.exports = { sendHttpRequest, generateZipFile, convertMillisecondsToDateTime, convertDateStrToRightTimeZone, generateCsvFile }

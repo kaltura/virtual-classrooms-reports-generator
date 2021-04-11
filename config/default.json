@@ -1,16 +1,19 @@
 {
   "newrow": {
-    "webserver_api": "https://smart.newrow.com/",
+    "webserver_api": "https://smart.newrow.com/backend/",
     "lti_key": "@COMPANY_LTI_KEY",
     "lti_secret": "@COMPANY_LTI_SECRET",
+    "admin_token": "@NEWROW_ADMIN_TOKEN",
     "company_id": 0,
     "rooms_ids": []
   },
   "kaltura": {
+    "api_server_host": "https://www.kaltura.com/api_v3/index.php",
     "partner_id": 0,
     "admin_secret": "@PARTNER_ADMIN_SECRET"
   },
   "report_start_time": 0,
   "report_end_time": 0,
+  "report_time_zone": "PST",
   "output_path": "@OUTPUT_PATH"
 }

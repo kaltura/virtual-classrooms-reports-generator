@@ -50,7 +50,7 @@ function generateKS(partnerId, secret){
     return $decodedKs.split('+').join('-').split('/').join('_');
 }
 
-async function getKalturaUsersList(ks, kalturaUsersIds){
+async function getKalturaUsersList(apiServerHost, ks, kalturaUsersIds){
     const params = {
         format: 1,
         ks: ks,
@@ -61,16 +61,18 @@ async function getKalturaUsersList(ks, kalturaUsersIds){
         "pager:pageSize": kalturaUsersIds.length,
     }
     return new Promise(async (resolve, reject) => {
-        const result = await sendHttpRequest("https://www.kaltura.com/api_v3/index.php", 'GET', params);
+        const result = await sendHttpRequest(apiServerHost, 'GET', params);
         if (result && result.status === 200 && result.data && result.data.objects){
             resolve(result.data.objects);
         }
-        console.log("Kaltura API failed: %s", JSON.stringify(result));
-        reject(result);
+        else {
+            console.log("Kaltura API failed: %j", result);
+            reject(result);
+        }
     });
 }
 
-async function getKalturaUserData(ks, kalturaUserId){
+async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
     const params = {
         format: 1,
         ks: ks,
@@ -79,7 +81,7 @@ async function getKalturaUserData(ks, kalturaUserId){
         userId: kalturaUserId,
     }
     return new Promise(async (resolve, reject) => {
-        const result = await sendHttpRequest("https://www.kaltura.com/api_v3/index.php", 'GET', params);
+        const result = await sendHttpRequest(apiServerHost, 'GET', params);
         if (result && result.status === 200 && result.data){
             resolve(result.data);
         }
@@ -88,28 +90,13 @@ async function getKalturaUserData(ks, kalturaUserId){
     });
 }
 
-async function getKalturaUsersRegistrationInfo(ks, kalturaUsersIds){
-    /*
-    const kalturaUsersIds = sessionAttendance.map((participantData) => participantData["tp_user_id"]);
-    const kalturaUsersData = await getKalturaUsersList(kalturaUsersIds);
-    console.log("Session [%d] has [%d] registered users at Kaltura", sessionId, kalturaUsersData.length);
-    const kalturaUsersMapping = {};
-    kalturaUsersData.forEach((kalturaUserData) =>{
-        kalturaUsersMapping[kalturaUserData["id"]] = kalturaUserData;
-    })
-    */
+async function getKalturaUsersRegistrationInfo(apiServerHost, ks, kalturaUsersIds){
     const res = {};
-    return new Promise(async resolve => {
-        const promises = kalturaUsersIds.map((userId) => getKalturaUserData(ks, userId));
-        Promise.all(promises).then((usersData) => {
-            usersData.forEach((userData) => {
-                const parsedUserData = JSON.parse(userData);
-                res[parsedUserData["id"]] = parsedUserData;
-            })
-            resolve(res);
-        })
-
-    });
+    const usersData = await getKalturaUsersList(apiServerHost, ks, kalturaUsersIds);
+    for (const userData of usersData){
+        res[userData["id"]] = userData;
+    }
+    return res;
 }
 
-module.exports = { generateKS, getKalturaUsersList, getKalturaUserData, getKalturaUsersRegistrationInfo }
+module.exports = { generateKS, getKalturaUsersRegistrationInfo }

@@ -8,3 +8,4 @@
 /httpRequests/
 node_modules
 .idea
+.DS_STORE
