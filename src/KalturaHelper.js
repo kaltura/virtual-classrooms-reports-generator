@@ -66,7 +66,7 @@ async function getKalturaUsersList(apiServerHost, ks, kalturaUsersIds){
             resolve(result.data.objects);
         }
         else {
-            console.log("Kaltura API failed: %j", result);
+            console.log("Kaltura API failed: ", result);
             reject(result);
         }
     });
@@ -85,7 +85,7 @@ async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
         if (result && result.status === 200 && result.data){
             resolve(result.data);
         }
-        console.log("Kaltura API failed", result);
+        console.log("Kaltura API failed: ", result);
         reject(result);
     });
 }

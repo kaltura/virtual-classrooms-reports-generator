@@ -39,10 +39,13 @@ const roomReportFieldNames = [
 ];
 
 function checkIfShouldAddUserToReport(userRegistrationInfo){
+    /*
     let shouldIncludeUser = userRegistrationInfo["email"].includes("amazon");
     shouldIncludeUser &= userRegistrationInfo.hasOwnProperty("connectWithPartners") && userRegistrationInfo["connectWithPartners"] === "true";
-    shouldIncludeUser &= (userRegistrationInfo["country"] !== 'HK');
+    //shouldIncludeUser &= (userRegistrationInfo["country"] !== 'HK');
     return shouldIncludeUser;
+     */
+    return true;
 }
 
 async function getAllUsersDataFromASingleSession(session, bearerToken, ks){
@@ -107,12 +110,9 @@ async function generateRoomReport(roomId, fromDate, toDate, bearerToken, ks){
         const roomsReportsPromises = roomsIds.map(id => generateRoomReport(id, fromDate, toDate, bearerToken, ks));
         await Promise.all(roomsReportsPromises);
         console.log("Finished collecting data");
-        const zipFileName = `${outputFolderPath}/SKO_${fromDate}_${toDate}.zip`;
-        generateZipFile(outputFolderPath, zipFileName).then(() => {
-            console.log("Finished creating zip file");
-        }).catch(error => {
-            console.error(error.message);
-        });
+        const zipFileName = `${outputFolderPath}/Company_${companyId}_Report_${fromDate}_${toDate}.zip`;
+        await generateZipFile(outputFolderPath, zipFileName);
+        console.log("Finished creating zip file");
     }
     catch (e){
         console.log(e.message);

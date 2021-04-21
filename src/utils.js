@@ -7,6 +7,13 @@ const qs = require('querystring');
 async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
     let res = null;
     return new Promise(async (resolve, reject) => {
+        const requestData = {
+            url,
+            method,
+            params,
+            config,
+        };
+        console.log('Sending HTTP request with: %j', requestData);
         try {
             if (method === 'GET') {
                 params = qs.stringify(params);
@@ -41,6 +48,7 @@ function generateZipFile(allFilesFolderPath, outputFilePath){
 }
 
 function convertMillisecondsToDateTime(time, timeZone = 'PST'){
+    time = typeof time === 'string' ? parseInt(time) : time;
     const date = new Date(time);
     return date.toLocaleString('en-US', { timeZone });
 }
