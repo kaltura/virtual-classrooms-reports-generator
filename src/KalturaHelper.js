@@ -60,16 +60,16 @@ async function getKalturaUsersList(apiServerHost, ks, kalturaUsersIds){
         "filter:idIn": kalturaUsersIds.join(","),
         "pager:pageSize": kalturaUsersIds.length,
     }
-    return new Promise(async (resolve, reject) => {
-        const result = await sendHttpRequest(apiServerHost, 'GET', params);
-        if (result && result.status === 200 && result.data && result.data.objects){
-            resolve(result.data.objects);
+    const config = { timeout: 5000 };
+    try {
+        const result = await sendHttpRequest(apiServerHost, 'POST', params, config);
+        if (result && result.status === 200 && result.data && result.data.objects) {
+            return result.data.objects;
         }
-        else {
-            console.log("Kaltura API failed: ", result);
-            reject(result);
-        }
-    });
+    } catch (e) {
+        console.log('Kaltura API request failed', e);
+        return null;
+    }
 }
 
 async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
@@ -80,21 +80,26 @@ async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
         action: "get",
         userId: kalturaUserId,
     }
-    return new Promise(async (resolve, reject) => {
-        const result = await sendHttpRequest(apiServerHost, 'GET', params);
-        if (result && result.status === 200 && result.data){
-            resolve(result.data);
+    try {
+        const result = await sendHttpRequest(apiServerHost, 'POST', params);
+        if (result && result.status === 200 && result.data) {
+            return result.data;
         }
-        console.log("Kaltura API failed: ", result);
-        reject(result);
-    });
+    }
+    catch (e) {
+        throw new Error(e.message);
+    }
 }
 
 async function getKalturaUsersRegistrationInfo(apiServerHost, ks, kalturaUsersIds){
     const res = {};
     const usersData = await getKalturaUsersList(apiServerHost, ks, kalturaUsersIds);
-    for (const userData of usersData){
-        res[userData["id"]] = userData;
+    if (usersData) {
+        for (const userData of usersData) {
+            if (userData["id"] && userData["registrationInfo"]) {
+                res[userData["id"]] = JSON.parse(userData["registrationInfo"]);
+            }
+        }
     }
     return res;
 }

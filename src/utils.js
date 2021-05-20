@@ -7,16 +7,9 @@ const qs = require('querystring');
 async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
     let res = null;
     return new Promise(async (resolve, reject) => {
-        const requestData = {
-            url,
-            method,
-            params,
-            config,
-        };
-        console.log('Sending HTTP request with: %j', requestData);
         try {
+            params = qs.stringify(params);
             if (method === 'GET') {
-                params = qs.stringify(params);
                 res = await axios.get(`${url}?${params}`, config);
             } else if (method === 'POST') {
                 res = await axios.post(url, params, config);
@@ -24,7 +17,7 @@ async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
             resolve(res);
         }
         catch (e){
-            console.error(`HTTP request to ${url} failed with ${e.message}`);
+            console.error(`HTTP request failed with: ${e.message}`, { url, method, params, config });
             reject(e);
         }
     });

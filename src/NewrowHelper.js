@@ -31,14 +31,17 @@ async function getNewrowBearerToken(webserverApi, ltiKey, ltiSecret){
     const requestConfig = {
         headers: authHeader
     }
-    return new Promise(async (resolve, reject) => {
-        const result = await axios.post(requestData.url, {}, requestConfig);
+    let result = null;
+    try {
+        result = await axios.post(requestData.url, {}, requestConfig);
         if (result && result.data && result.data.status === 'success' && result.data.data) {
-            resolve(result.data.data);
-        } else {
-            reject(result);
+            return result.data.data;
         }
-    })
+    }
+    catch (e) {
+        // do nothing
+    }
+    return result;
 }
 
 async function sendNewrowAPIRequest(webserverApi, requestUri, bearerToken, method = 'GET', params = {}){
@@ -46,17 +49,20 @@ async function sendNewrowAPIRequest(webserverApi, requestUri, bearerToken, metho
     const requestConfig = {
         headers: {
             Authorization: "Bearer " + bearerToken
+        },
+        timeout: 5000,
+    }
+    let result;
+    try {
+        result = await sendHttpRequest(url, method, params, requestConfig);
+        if (result && result.data && result.data.status === 'success' && result.data.data) {
+            return result.data.data;
         }
     }
-    return new Promise(async (resolve, reject) => {
-        const result = await sendHttpRequest(url, method, params, requestConfig);
-        if (result && result.data && result.data.status === 'success' && result.data.data){
-            resolve(result.data.data);
-        }
-        else{
-            reject(result);
-        }
-    })
+    catch (e) {
+        // do nothing
+    }
+    console.error('Newrow API request failed', {url, method, params});
 }
 
 async function sendNewrowAdminRequest(webserverApi, requestUri, adminToken, method = 'GET', params = {}){
@@ -77,17 +83,29 @@ async function getRoomSessionsBetweenDates(webserverApi, bearerToken, roomId, fr
         "from_date": fromDate,
         "to_date": toDate,
     }
-    return await sendNewrowAPIRequest(webserverApi, 'analytics/sessions', bearerToken, 'GET', params);
+    const res = await sendNewrowAPIRequest(webserverApi, 'analytics/sessions', bearerToken, 'GET', params);
+    return res && res["sessions"] ? res["sessions"] : null;
+}
+
+async function getCompanySessionsBetweenDates(webserverApi, bearerToken, fromDate, toDate){
+    let params = {
+        "from_date": fromDate,
+        "to_date": toDate,
+        "limit": 1000,
+    }
+    const res = await sendNewrowAPIRequest(webserverApi, 'analytics/sessions', bearerToken, 'GET', params);
+    return res && res["sessions"] ? res["sessions"] : null;
 }
 
 async function getSessionParticipantsData(webserverApi, bearerToken, sessionId, params = {}){
+    params = Object.assign({}, params, { limit: 1000});
     const res = await sendNewrowAPIRequest(webserverApi, `analytics/detailed-session-attendees/${sessionId}`, bearerToken, 'GET', params);
-    return res["detailed_attendance"];
+    return res && res["detailed_attendance"] ? res["detailed_attendance"] : null;
 }
 
 async function getRoomName(webserverApi, bearerToken, roomId){
     const res = await sendNewrowAPIRequest(webserverApi, `rooms/${roomId}`, bearerToken, 'GET');
-    return res["name"];
+    return res && res["name"] ? res["name"] : null;
 }
 
 function parseSingleSessionData(sessionDataStr, fields){
@@ -131,7 +149,7 @@ function parseSingleSessionData(sessionDataStr, fields){
     return res;
 }
 
-async function generateCompanyReport(webserverApi, adminToken, companyId, fromDate, toDate, timeZone, outputPath){
+async function generateCompanyAggregatedReport(webserverApi, adminToken, companyId, fromDate, toDate, timeZone, outputPath){
     const params = {
         "company_id": companyId,
         "start_date": fromDate,
@@ -162,4 +180,4 @@ async function generateCompanyReport(webserverApi, adminToken, companyId, fromDa
     await generateCsvFile(outputFilePath, fixedFields, records);
 }
 
-module.exports = { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData, getRoomName, generateCompanyReport }
+module.exports = { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData, getCompanySessionsBetweenDates }
