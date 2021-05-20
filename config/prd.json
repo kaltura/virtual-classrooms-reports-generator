@@ -1,0 +1,12 @@
+{
+  "newrow": {
+    "lti_key": "",
+    "lti_secret": "",
+    "company_id": 0,
+    "override_rooms_ids": []
+  },
+  "kaltura": {
+    "partner_id": 0,
+    "admin_secret": ""
+  }
+}
