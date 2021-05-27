@@ -12,3 +12,4 @@ node_modules
 config/
 !config/default.json
 !config/prd.json
+customers/
