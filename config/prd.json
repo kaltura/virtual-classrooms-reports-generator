@@ -3,7 +3,8 @@
     "lti_key": "",
     "lti_secret": "",
     "company_id": 0,
-    "override_rooms_ids": []
+    "override_rooms_ids": [],
+    "admin_token": ""
   },
   "kaltura": {
     "partner_id": 0,

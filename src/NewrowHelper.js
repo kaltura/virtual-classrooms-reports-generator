@@ -2,7 +2,7 @@ const axios = require("axios");
 const crypto = require('crypto');
 const OAuth = require('oauth-1.0a');
 
-const { sendHttpRequest, generateCsvFile, convertDateStrToRightTimeZone } = require('./utils');
+const { sendHttpRequest, generateCsvFile, convertDateStrToRightTimeZone, httpsRequest} = require('./utils');
 
 function getAuthorizationHeader(consumer, requestData){
     const oauth = OAuth({
@@ -75,6 +75,27 @@ async function sendNewrowAdminRequest(webserverApi, requestUri, adminToken, meth
         url = `${url}?access-token=${adminToken}`;
     }
     return await sendHttpRequest(url, method, fixedParams);
+}
+
+async function sendHttpRequestToMS(msGatewayUrl, uri, method = 'GET', params = {}) {
+    const url = `${msGatewayUrl}${uri}`;
+    let urlParams = {};
+    let bodyParams = {};
+    let headers = {};
+    if (method === 'GET') {
+        urlParams = params;
+    } else if (method === 'POST') {
+        bodyParams = params;
+        headers = { 'content-type': 'application/json' };
+    }
+    const requestConfig = {
+        method,
+        url,
+        params: urlParams,
+        data: bodyParams,
+        headers,
+    };
+    return await sendHttpRequest(requestConfig);
 }
 
 async function getRoomSessionsBetweenDates(webserverApi, bearerToken, roomId, fromDate, toDate){
@@ -180,4 +201,41 @@ async function generateCompanyAggregatedReport(webserverApi, adminToken, company
     await generateCsvFile(outputFilePath, fixedFields, records);
 }
 
-module.exports = { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData, getCompanySessionsBetweenDates }
+async function getRoomChatMessages(msGatewayUrl, companyId, roomId, type, startDate, endDate){
+    const url = `${msGatewayUrl}chat/conversations/messages/history/company/${companyId}/room/${roomId}`;
+    /*
+    const bodyParams = {type, start_date: startDate * 1000, end_date: endDate * 1000};
+    const requestConfig = {
+        params: bodyParams,
+    };
+    try {
+        const res = await axios.get(url, requestConfig);
+        if (res && res.data && res.data.data && res.data.data.payload){
+            return res.data.data.payload;
+        }
+    }
+    catch (e){
+        console.log(`Failed to get room [${roomId}] messages with: ` + e.message);
+    }
+     */
+    const requestData = JSON.stringify({type, start_date: startDate * 1000, end_date: endDate * 1000});
+
+    const options = {
+        hostname: 'vrp1-api-gw.newrow.com',
+        path: `/chat/conversations/messages/history/company/${companyId}/room/${roomId}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(requestData)
+        }
+    };
+
+    const res = await httpsRequest(options, requestData);
+    if (res && res.data && res.data.payload && res.data.payload.messages){
+        return res.data.payload.messages;
+    }
+    return [];
+}
+
+module.exports = { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData,
+    getCompanySessionsBetweenDates, generateCompanyAggregatedReport, getRoomChatMessages }

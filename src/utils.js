@@ -3,6 +3,7 @@ const axios = require("axios");
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fileSystem = require('fs');
 const qs = require('querystring');
+const https = require('https');
 
 async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
     let res = null;
@@ -23,6 +24,41 @@ async function sendHttpRequest(url, method = 'GET', params = {}, config = {}){
     });
 }
 
+function httpsRequest(params, postData) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(params, function(res) {
+            // reject on bad status
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+                return reject(new Error('statusCode=' + res.statusCode));
+            }
+            // cumulate data
+            let body = [];
+            res.on('data', function(chunk) {
+                body.push(chunk);
+            });
+            // resolve on end
+            res.on('end', function() {
+                try {
+                    body = JSON.parse(Buffer.concat(body).toString());
+                } catch(e) {
+                    reject(e);
+                }
+                resolve(body);
+            });
+        });
+        // reject on request error
+        req.on('error', function(err) {
+            // This is not a "Second reject", just a different sort of failure
+            reject(err);
+        });
+        if (postData) {
+            req.write(postData);
+        }
+        // IMPORTANT
+        req.end();
+    });
+}
+
 function generateZipFile(allFilesFolderPath, outputFilePath){
     const stream = fileSystem.createWriteStream(outputFilePath);
     const archive = archiver('zip', {
@@ -40,7 +76,7 @@ function generateZipFile(allFilesFolderPath, outputFilePath){
     });
 }
 
-function convertMillisecondsToDateTime(time, timeZone = 'PST'){
+function convertMillisecondsToDateTime(time, timeZone = 'GMT'){
     time = typeof time === 'string' ? parseInt(time) : time;
     const date = new Date(time);
     return date.toLocaleString('en-US', { timeZone });
@@ -60,4 +96,5 @@ async function generateCsvFile(outputFilePath, fieldNames, records){
     await csvWriter.writeRecords(records);
 }
 
-module.exports = { sendHttpRequest, generateZipFile, convertMillisecondsToDateTime, convertDateStrToRightTimeZone, generateCsvFile }
+module.exports = { sendHttpRequest, generateZipFile, convertMillisecondsToDateTime, convertDateStrToRightTimeZone,
+    generateCsvFile, httpsRequest }
