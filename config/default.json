@@ -1,13 +1,13 @@
 {
   "newrow": {
     "webserver_api": "https://smart.newrow.com/backend/",
-    "ms_api_gw": "https://vrp1-api-gw.newrow.com/"
+    "ms_api_gw": "vrp1-api-gw.newrow.com"
   },
   "kaltura": {
     "api_server_host": "https://www.kaltura.com/api_v3/index.php"
   },
-  "report_start_time": 1632614400,
-  "report_end_time": 1632700800,
+  "report_start_time": 1632916800,
+  "report_end_time": 1632949200,
   "output_path": "/tmp/reports",
   "timezone": "GMT"
 }

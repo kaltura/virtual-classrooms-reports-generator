@@ -234,7 +234,7 @@ async function createChatReports(roomsIds) {
         console.log('Generating session report for each room');
         await processAllSessionsData(sessionsFullDataMapByRoomId, bearerToken, ks);
         console.log('Generating aggregated report for the company');
-        await generateCompanyAggregatedReport(newrowWebserverApi, adminToken, companyId, fromDate, toDate, timezone, outputFolderPath);
+        await generateCompanyAggregatedReport(newrowWebserverApi, adminToken, companyId, overrideRoomsIds, fromDate, toDate, timezone, outputFolderPath);
         console.log('Generating chat report for each room');
         await createChatReports(roomsIds);
         console.log('Generating zip file');

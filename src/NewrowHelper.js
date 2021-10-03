@@ -170,7 +170,7 @@ function parseSingleSessionData(sessionDataStr, fields){
     return res;
 }
 
-async function generateCompanyAggregatedReport(webserverApi, adminToken, companyId, fromDate, toDate, timeZone, outputPath){
+async function generateCompanyAggregatedReport(webserverApi, adminToken, companyId, overrideRoomsIds = [], fromDate, toDate, timeZone, outputPath){
     const params = {
         "company_id": companyId,
         "start_date": fromDate,
@@ -186,6 +186,10 @@ async function generateCompanyAggregatedReport(webserverApi, adminToken, company
         record["start_date"] = convertDateStrToRightTimeZone(record["start_date"], timeZone);
         record["end_date"] = convertDateStrToRightTimeZone(record["end_date"], timeZone);
     })
+    if (overrideRoomsIds.length > 0){
+        // Filter out non relevant rooms ids
+        records = records.filter((record) => overrideRoomsIds.includes(record["room_id"]), records);
+    }
     const fixedFields = [];
     for (const field of fields){
         fixedFields.push({id: field, title: field});
@@ -202,26 +206,10 @@ async function generateCompanyAggregatedReport(webserverApi, adminToken, company
 }
 
 async function getRoomChatMessages(msGatewayUrl, companyId, roomId, type, startDate, endDate){
-    const url = `${msGatewayUrl}chat/conversations/messages/history/company/${companyId}/room/${roomId}`;
-    /*
-    const bodyParams = {type, start_date: startDate * 1000, end_date: endDate * 1000};
-    const requestConfig = {
-        params: bodyParams,
-    };
-    try {
-        const res = await axios.get(url, requestConfig);
-        if (res && res.data && res.data.data && res.data.data.payload){
-            return res.data.data.payload;
-        }
-    }
-    catch (e){
-        console.log(`Failed to get room [${roomId}] messages with: ` + e.message);
-    }
-     */
     const requestData = JSON.stringify({type, start_date: startDate * 1000, end_date: endDate * 1000});
 
     const options = {
-        hostname: 'vrp1-api-gw.newrow.com',
+        hostname: msGatewayUrl,
         path: `/chat/conversations/messages/history/company/${companyId}/room/${roomId}`,
         method: 'GET',
         headers: {
