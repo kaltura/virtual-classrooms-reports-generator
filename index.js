@@ -68,16 +68,15 @@ async function getAllUsersDataFromASingleSession(session, bearerToken, ks){
     const roomId = session["room_id"];
     const ltiRoomId = session["third_party_room_id"];
     const sessionId = session["id"];
-    console.log(`Collecting participants data for room ${roomId} and session ${sessionId}`);
+    console.log(`Collecting participants data for room [${roomId}] and session [${sessionId}]`);
     let newrowParticipantsData = await getSessionParticipantsData(newrowWebserverApi, bearerToken, session["id"]);
     if (newrowParticipantsData && newrowParticipantsData.length >= 1) {
         newrowParticipantsData = newrowParticipantsData.filter((participant) => participant.hasOwnProperty("tp_user_id"));
         if (newrowParticipantsData.length > 0) {
             const kalturaUsersIds = newrowParticipantsData.map((participant) => participant["tp_user_id"]);
-            console.log(`Getting Kaltura users registration info for room ${roomId} and session ${sessionId}`);
+            console.log(`Getting Kaltura users registration info for room [${roomId}] and session [${sessionId}]`);
             const kalturaUsersRegistrationInfo = await getKalturaUsersRegistrationInfo(kalturaApiServerHost, ks, kalturaUsersIds);
             if (kalturaUsersRegistrationInfo) {
-                console.log("Kaltura user info: %j", kalturaUsersRegistrationInfo);
                 const roomName = session["room_name"];
                 for (const participant of newrowParticipantsData) {
                     const kUserId = participant["tp_user_id"];
