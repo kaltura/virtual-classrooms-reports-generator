@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.34.0",
     "@aws-sdk/credential-provider-node": "^3.34.0",
+    "@aws-sdk/credential-providers": "^3.34.0",
     "archiver": "^5.2.0",
     "axios": "^0.21.1",
     "config": "^3.3.3",

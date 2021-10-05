@@ -4,7 +4,7 @@ const { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipant
     generateCompanyAggregatedReport, getRoomChatMessages
 } = require('./src/NewrowHelper');
 const { generateKS, getKalturaUsersRegistrationInfo } = require('./src/KalturaHelper');
-const { generateZipFile, convertMillisecondsToDateTime, generateCsvFile } = require('./src/utils');
+const { generateZipFile, convertMillisecondsToDateTime, generateCsvFile, convertDateStrToRightTimeZone} = require('./src/utils');
 
 const newrowWebserverApi = config.get("newrow.webserver_api");
 const ltiKey = config.get("newrow.lti_key");
@@ -63,27 +63,37 @@ function checkIfShouldAddUserToReport(userRegistrationInfo){
     return true;
 }
 
+function aggregateSameUserData(previousData, currentData) {
+    previousData["duration"] += currentData["duration"];
+    previousData["attention"] += currentData["attention"];
+    previousData["joined"] = Math.min(previousData["joined"], currentData["joined"]);
+    previousData["left"] = Math.max(previousData["left"], currentData["left"]);
+    return previousData;
+}
+
 async function getAllUsersDataFromASingleSession(session, bearerToken, ks){
     const res = [];
     const roomId = session["room_id"];
-    const ltiRoomId = session["third_party_room_id"];
     const sessionId = session["id"];
     console.log(`Collecting participants data for room [${roomId}] and session [${sessionId}]`);
     let newrowParticipantsData = await getSessionParticipantsData(newrowWebserverApi, bearerToken, session["id"]);
     if (newrowParticipantsData && newrowParticipantsData.length >= 1) {
         newrowParticipantsData = newrowParticipantsData.filter((participant) => participant.hasOwnProperty("tp_user_id"));
         if (newrowParticipantsData.length > 0) {
-            const kalturaUsersIds = newrowParticipantsData.map((participant) => participant["tp_user_id"]);
+            let kalturaUsersIds = newrowParticipantsData.map((participant) => participant["tp_user_id"]);
+            kalturaUsersIds = [...new Set(kalturaUsersIds)];
             console.log(`Getting Kaltura users registration info for room [${roomId}] and session [${sessionId}]`);
             const kalturaUsersRegistrationInfo = await getKalturaUsersRegistrationInfo(kalturaApiServerHost, ks, kalturaUsersIds);
             if (kalturaUsersRegistrationInfo) {
+                const usersDataMap = new Map();
+                const ltiRoomId = session["third_party_room_id"];
                 const roomName = session["room_name"];
                 for (const participant of newrowParticipantsData) {
                     const kUserId = participant["tp_user_id"];
                     if (kalturaUsersRegistrationInfo[kUserId]) {
                         const registrationInfo = kalturaUsersRegistrationInfo[kUserId];
                         if (checkIfShouldAddUserToReport(registrationInfo)) {
-                            res.push({
+                            const userCurrentData = {
                                 "roomName": roomName,
                                 "ltiRoomId": ltiRoomId,
                                 "kuserId": participant["tp_user_id"],
@@ -98,13 +108,24 @@ async function getAllUsersDataFromASingleSession(session, bearerToken, ks){
                                 "postalCode": registrationInfo["postalCode"],
                                 "phone": registrationInfo["phone"],
                                 "jobRole": registrationInfo["jobRole"],
-                                "joined": convertMillisecondsToDateTime(participant["time_joined"] * 1000, timezone),
-                                "left": convertMillisecondsToDateTime(participant["time_left"] * 1000, timezone),
+                                "joined": typeof participant["time_joined"] === 'string' ? parseInt(participant["time_joined"]) : participant["time_joined"],
+                                "left": typeof participant["time_left"] === 'string' ? parseInt(participant["time_left"]) : participant["time_left"],
                                 "duration": participant["time_left"] - participant["time_joined"],
                                 "attention": participant["focus_time"],
-                            })
+                            };
+                            if (usersDataMap.has(kUserId)) {
+                                const aggregatedData = aggregateSameUserData(usersDataMap.get(kUserId), userCurrentData);
+                                usersDataMap.set(kUserId, aggregatedData);
+                            } else {
+                                usersDataMap.set(kUserId, userCurrentData);
+                            }
                         }
                     }
+                }
+                for (const [kUserId, userData] of usersDataMap) {
+                    userData["joined"] = convertMillisecondsToDateTime(userData["joined"] * 1000, timezone);
+                    userData["left"] = convertMillisecondsToDateTime(userData["left"] * 1000, timezone);
+                    res.push(userData);
                 }
             }
             else {

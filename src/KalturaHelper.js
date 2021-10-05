@@ -72,6 +72,31 @@ async function getKalturaUsersList(apiServerHost, ks, kalturaUsersIds){
     }
 }
 
+async function getKalturaUsersListByESearch(apiServerHost, ks, kalturaUsersIds) {
+    const params = {
+        format: 1,
+        ks: ks,
+        service: "elasticsearch_esearch",
+        action: "searchUser",
+        "searchParams:objectType": "KalturaESearchUserParams",
+        "searchParams:searchOperator:objectType": "KalturaESearchUserOperator",
+        "searchParams:searchOperator:operator": 2,
+        "searchParams:searchOperator:searchItems:item1:objectType": "KalturaESearchUserItem",
+        "searchParams:searchOperator:searchItems:item1:searchTerm": kalturaUsersIds.join(","),
+        "pager:pageSize": kalturaUsersIds.length,
+    }
+    const config = { timeout: 5000 };
+    try {
+        const result = await sendHttpRequest(apiServerHost, 'POST', params, config);
+        if (result && result.status === 200 && result.data && result.data.objects) {
+            return result.data.objects;
+        }
+    } catch (e) {
+        console.log('Kaltura API request failed', e);
+        return null;
+    }
+}
+
 async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
     const params = {
         format: 1,
@@ -93,9 +118,16 @@ async function getKalturaUserData(apiServerHost, ks, kalturaUserId){
 
 async function getKalturaUsersRegistrationInfo(apiServerHost, ks, kalturaUsersIds){
     const res = {};
-    const usersData = await getKalturaUsersList(apiServerHost, ks, kalturaUsersIds);
-    if (usersData) {
-        for (const userData of usersData) {
+    const chunkSize = 50;
+    const kalturaUsersListPromises = [];
+    for (let i=0; i<kalturaUsersIds.length; i+=chunkSize){
+        const chunk = kalturaUsersIds.splice(i, i+chunkSize);
+        const kalturaUsersListPromise = getKalturaUsersList(apiServerHost, ks, chunk);
+        kalturaUsersListPromises.push(kalturaUsersListPromise);
+    }
+    const chunksUsersList = await Promise.all(kalturaUsersListPromises);
+    for (const chunkUsersList of chunksUsersList) {
+        for (const userData of chunkUsersList) {
             if (userData["id"] && userData["registrationInfo"]) {
                 res[userData["id"]] = JSON.parse(userData["registrationInfo"]);
             }

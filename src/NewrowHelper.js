@@ -188,7 +188,7 @@ async function generateCompanyAggregatedReport(webserverApi, adminToken, company
     })
     if (overrideRoomsIds.length > 0){
         // Filter out non relevant rooms ids
-        records = records.filter((record) => overrideRoomsIds.includes(record["room_id"]), records);
+        records = records.filter((record) => overrideRoomsIds.includes(parseInt(record["room_id"])), records);
     }
     const fixedFields = [];
     for (const field of fields){
