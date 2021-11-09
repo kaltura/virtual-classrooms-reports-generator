@@ -1,10 +1,10 @@
 const config = require("config");
 
 const { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData, getCompanySessionsBetweenDates,
-    generateCompanyAggregatedReport, getRoomChatMessages
+    generateCompanyAggregatedReport, getSessionChatMessages
 } = require('./src/NewrowHelper');
 const { generateKS, getKalturaUsersRegistrationInfo } = require('./src/KalturaHelper');
-const { generateZipFile, convertMillisecondsToDateTime, generateCsvFile, convertDateStrToRightTimeZone} = require('./src/utils');
+const { generateZipFile, convertMillisecondsToDateTime, generateCsvFile } = require('./src/utils');
 
 const newrowWebserverApi = config.get("newrow.webserver_api");
 const ltiKey = config.get("newrow.lti_key");
@@ -12,7 +12,6 @@ const ltiSecret = config.get("newrow.lti_secret");
 const companyId = config.get("newrow.company_id");
 const overrideRoomsIds = config.get("newrow.override_rooms_ids");
 const adminToken = config.get("newrow.admin_token");
-const msApiGw = config.get("newrow.ms_api_gw");
 
 const kalturaApiServerHost = config.get("kaltura.api_server_host");
 const partnerId = config.get("kaltura.partner_id");
@@ -44,14 +43,15 @@ const roomParticipantsReportFieldNames = [
     {id: 'attention', title: 'Attention'},
 ];
 
-const chatTypes = ['public', 'qna', 'moderators'];
+const chatTypes = ['regular', 'questions', 'moderators'];
 
 const chatReportFieldNames = [
     {id: 'time', title: 'Time'},
-    {id: 'name', title: 'Name'},
-    {id: 'userType', title: 'User Type'},
-    {id: 'chatType', title: 'Chat Type'},
-    {id: 'message', title: 'Message'}
+    {id: 'user_name', title: 'Name'},
+    {id: 'user_type', title: 'User Type'},
+    {id: 'message', title: 'Message'},
+    {id: 'email', title: 'Email'},
+    {id: 'third_party_user_id:', title: 'TP User ID'},
 ];
 
 function checkIfShouldAddUserToReport(userRegistrationInfo){
@@ -209,25 +209,22 @@ async function getSpecificRoomsSessions(roomsIds, bearerToken) {
     return sessionsFullDataMapByRoomId;
 }
 
-async function createChatReports(roomsIds) {
-    for (const roomId of roomsIds) {
+async function createChatReports(sessionsMapByRoomId, bearerToken) {
+    for (const [roomId, roomSessions] of sessionsMapByRoomId) {
         console.log(`Getting chat messages for room [${roomId}]`);
         for (const chatType of chatTypes) {
-            const roomMessages = await getRoomChatMessages(msApiGw, companyId, roomId, chatType, fromDate, toDate);
-            const fixedChatMessages = [];
-            for (const roomMessage of roomMessages) {
-                fixedChatMessages.push({
-                    'time': convertMillisecondsToDateTime(roomMessage['date_created'], timezone),
-                    'name': roomMessage.user['name'],
-                    'userType': roomMessage.user['type'],
-                    'chatType': chatType,
-                    'message': roomMessage["message_text"],
-                });
+            let allRoomMessagesByType = [];
+            for (const session of roomSessions) {
+                const roomMessages = await getSessionChatMessages(newrowWebserverApi, bearerToken, session["id"], chatType, timezone);
+                if (roomMessages.length > 0){
+                    roomMessages.forEach((message) => message["time"] = convertMillisecondsToDateTime(message["time"], timezone));
+                    allRoomMessagesByType = allRoomMessagesByType.concat(roomMessages);
+                }
             }
-            if (fixedChatMessages.length > 0){
+            if (allRoomMessagesByType.length > 0){
                 console.log(`Generating chat report for room [${roomId}] and type [${chatType}]`);
-                const filePath = `${outputFolderPath}/Room_${roomId}_${chatType}_chat_${fromDate}_${toDate}.csv`;
-                await generateCsvFile(filePath, chatReportFieldNames, fixedChatMessages);
+                const filePath = `${outputFolderPath}/Room_${roomId}_${chatType}_chat.csv`;
+                await generateCsvFile(filePath, chatReportFieldNames, allRoomMessagesByType);
             }
         }
     }
@@ -239,25 +236,20 @@ async function createChatReports(roomsIds) {
         bearerToken = bearerToken["token"];
         const ks = generateKS(partnerId, secret);
         let sessionsFullDataMapByRoomId;
-        let roomsIds = [];
         if (overrideRoomsIds && overrideRoomsIds.length > 0){
             console.log('Collecting sessions for specific rooms', overrideRoomsIds);
             sessionsFullDataMapByRoomId = await getSpecificRoomsSessions(overrideRoomsIds, bearerToken);
-            roomsIds = overrideRoomsIds;
         }
         else {
             console.log('Collecting sessions for all company rooms');
             sessionsFullDataMapByRoomId = await getCompanySessionsMap(bearerToken);
-            for (const [roomId, _] of sessionsFullDataMapByRoomId){
-                roomsIds.push(roomId);
-            }
         }
         console.log('Generating session report for each room');
         await processAllSessionsData(sessionsFullDataMapByRoomId, bearerToken, ks);
         console.log('Generating aggregated report for the company');
         await generateCompanyAggregatedReport(newrowWebserverApi, adminToken, companyId, overrideRoomsIds, fromDate, toDate, timezone, outputFolderPath);
         console.log('Generating chat report for each room');
-        await createChatReports(roomsIds);
+        await createChatReports(sessionsFullDataMapByRoomId, bearerToken);
         console.log('Generating zip file');
         const zipFileName = `${outputFolderPath}/Company_${companyId}_Report_${fromDate}_${toDate}.zip`;
         await generateZipFile(outputFolderPath, zipFileName);

@@ -225,5 +225,16 @@ async function getRoomChatMessages(msGatewayUrl, companyId, roomId, type, startD
     return [];
 }
 
+async function getSessionChatMessages(webserverApi, bearerToken, sessionId, chatType, timeZone){
+    const params = {
+        "session_id": sessionId,
+        "type": chatType,
+        "client_timezone": timeZone,
+        "limit": 1000,
+    };
+    const res = await sendNewrowAPIRequest(webserverApi, `analytics/session-messages`, bearerToken, 'GET', params);
+    return res && res["session_messages"] ? res["session_messages"] : [];
+}
+
 module.exports = { getNewrowBearerToken, getRoomSessionsBetweenDates, getSessionParticipantsData,
-    getCompanySessionsBetweenDates, generateCompanyAggregatedReport, getRoomChatMessages }
+    getCompanySessionsBetweenDates, generateCompanyAggregatedReport, getRoomChatMessages, getSessionChatMessages }
