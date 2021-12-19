@@ -10,11 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.34.0",
-    "@aws-sdk/credential-providers": "^3.34.0",
+    "@aws-sdk/client-s3": "^3.44.0",
+    "@aws-sdk/credential-providers": "^3.43.0",
     "archiver": "^5.2.0",
-    "axios": "^0.21.1",
-    "config": "^3.3.3",
+    "axios": "^0.24.0",
+    "config": "^3.3.6",
     "csv-writer": "^1.6.0",
     "oauth-1.0a": "^2.2.6"
   }
