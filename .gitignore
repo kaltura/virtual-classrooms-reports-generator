@@ -13,3 +13,4 @@ config/
 !config/default.json
 !config/prd.json
 customers/
+package-lock.json
