@@ -121,7 +121,7 @@ async function getKalturaUsersRegistrationInfo(apiServerHost, ks, kalturaUsersId
     const chunkSize = 50;
     const kalturaUsersListPromises = [];
     for (let i=0; i<kalturaUsersIds.length; i+=chunkSize){
-        const chunk = kalturaUsersIds.splice(i, i+chunkSize);
+        const chunk = kalturaUsersIds.slice(i, i+chunkSize);
         const kalturaUsersListPromise = getKalturaUsersList(apiServerHost, ks, chunk);
         kalturaUsersListPromises.push(kalturaUsersListPromise);
     }
